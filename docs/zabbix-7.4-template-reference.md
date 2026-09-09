@@ -63,3 +63,17 @@ when a new schema fact is learned from a real import failure.
   `templateLinkage` createMissing; `valueMaps` deleteMissing:false. The importer
   reports only the FIRST error then stops — expect to iterate. Re-import is
   idempotent (all 5 templates re-import OK in dependency order).
+
+## Standalone dashboards (dashboards/ + dashboard.create)
+- Standalone (non-template) dashboards are NOT part of `configuration.export`;
+  deploy via the `dashboard.create`/`dashboard.update` API from a portable JSON.
+- Widget field type codes: 0=integer, 1=string, 2=host group, 3=host, 4=item.
+- **svggraph draw type `ds.N.type`: `0`=Line (default), `1`=Points, `2`=Staircase,
+  `3`=Bar.** (Easy to get backwards — setting `1` renders dots, not a line.)
+- Item value widget needs `show.N` fields to control content: 1=description,
+  2=value, 3=time, 5=change indicator. Without them it shows the time large and
+  the name as the value. `value_size`/`decimal_size` size the number.
+- tophosts column needs `columns.N.aggregate_function` or it reports "Widget is
+  not fully configured".
+- Template names (technical `name`) must NOT contain `/` — rejected as an invalid
+  host name.
