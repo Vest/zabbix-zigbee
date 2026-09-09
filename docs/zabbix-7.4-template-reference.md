@@ -73,7 +73,9 @@ when a new schema fact is learned from a real import failure.
 - Item value widget needs `show.N` fields to control content: 1=description,
   2=value, 3=time, 5=change indicator. Without them it shows the time large and
   the name as the value. `value_size`/`decimal_size` size the number.
-- tophosts column needs `columns.N.aggregate_function` or it reports "Widget is
-  not fully configured".
+- tophosts: every column must be complete. Column `data` codes: `2`=host name
+  (no item needed), `1`=item value (REQUIRES `columns.N.item`). A column with
+  `data=1` and no `item` makes the whole widget "not fully configured". Make the
+  label column `data=2` and the value column `data=1`+`item`+`display`.
 - Template names (technical `name`) must NOT contain `/` — rejected as an invalid
   host name.
