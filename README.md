@@ -73,6 +73,16 @@ agent 2. Without this, items stay green/unsupported-free but receive NO data
 > Retained `z2m/bridge/*` topics populate within a cycle of the restart; device
 > topics are not retained, so device items fill in on each device's next publish.
 
+### 5. Create the fleet dashboard (optional)
+
+    python3 scripts/create_dashboard.py
+
+Creates/updates a standalone "Zigbee fleet" dashboard: water-used-today, water
+per event, valve status, battery levels, temperature, humidity, link quality,
+plug power, and gateway health. Standalone dashboards go through the API
+(`dashboard.create`), not template import — so the hosts (step 3) must exist
+first, since the widgets reference their items. Re-runnable (updates in place).
+
 ## Notes
 
 - Device topics are not retained: device items populate on the next change after
