@@ -77,11 +77,13 @@ agent 2. Without this, items stay green/unsupported-free but receive NO data
 
     python3 scripts/create_dashboard.py
 
-Creates/updates a standalone "Zigbee fleet" dashboard: water-used-today, water
-per event, valve status, battery levels, temperature, humidity, link quality,
-plug power, and gateway health. Standalone dashboards go through the API
+Deploys the portable `dashboards/zigbee_fleet_overview.json` (water-used-today,
+water per event, battery levels, temperature, humidity, link quality, plug power,
+gateway health, live problems). Standalone dashboards go through the API
 (`dashboard.create`), not template import — so the hosts (step 3) must exist
-first, since the widgets reference their items. Re-runnable (updates in place).
+first. It filters by the `Zigbee` host group and uses item-name patterns, so new
+devices appear automatically; a few single-value widgets are resolved to itemids
+at deploy time. Re-runnable (updates in place). See `dashboards/README.md`.
 
 ## Notes
 

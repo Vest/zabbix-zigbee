@@ -25,16 +25,19 @@
           "fields": [
             { "type": "2", "name": "groupids.0", "value": "31" },
             { "type": "1", "name": "columns.0.name", "value": "Device" },
-            { "type": "0", "name": "columns.0.data", "value": "2" },
-            { "type": "1", "name": "columns.1.name", "value": "Battery (%)" },
+            { "type": "0", "name": "columns.0.data", "value": "1" },
+            { "type": "1", "name": "columns.1.name", "value": "Battery" },
             { "type": "0", "name": "columns.1.data", "value": "1" },
             { "type": "1", "name": "columns.1.item", "value": "Battery" },
-            { "type": "0", "name": "columns.1.display", "value": "2" },
-            { "type": "0", "name": "columns.1.min", "value": "0" },
-            { "type": "0", "name": "columns.1.max", "value": "100" },
+            { "type": "0", "name": "columns.1.aggregate_function", "value": "0" },
+            { "type": "0", "name": "columns.1.display", "value": "1" },
+            { "type": "1", "name": "columns.1.min", "value": "0" },
+            { "type": "1", "name": "columns.1.max", "value": "100" },
             { "type": "1", "name": "columns.1.base_color", "value": "43A047" },
+            { "type": "0", "name": "column", "value": "1" },
             { "type": "0", "name": "order", "value": "1" },
-            { "type": "1", "name": "column", "value": "1" }
+            { "type": "0", "name": "count", "value": "10" },
+            { "type": "1", "name": "reference", "value": "ZBBTOP" }
           ]
         },
         {
@@ -44,6 +47,11 @@
           "fields": [
             { "type": "1", "name": "reference", "value": "ZBWTD" },
             { "type": "4", "name": "itemid.0", "value": "GARDEN_WATER_TOTAL" },
+            { "type": "0", "name": "show.0", "value": "1" },
+            { "type": "0", "name": "show.1", "value": "2" },
+            { "type": "1", "name": "description", "value": "Water today" },
+            { "type": "0", "name": "value_size", "value": "45" },
+            { "type": "0", "name": "decimal_size", "value": "35" },
             { "type": "0", "name": "aggregate_function", "value": "5" },
             { "type": "1", "name": "time_period.from", "value": "now-1d" },
             { "type": "1", "name": "time_period.to", "value": "now" },
@@ -58,6 +66,11 @@
           "fields": [
             { "type": "1", "name": "reference", "value": "ZBWLV" },
             { "type": "4", "name": "itemid.0", "value": "GARDEN_RT_VOLUME" },
+            { "type": "0", "name": "show.0", "value": "1" },
+            { "type": "0", "name": "show.1", "value": "2" },
+            { "type": "1", "name": "description", "value": "Live volume" },
+            { "type": "0", "name": "value_size", "value": "45" },
+            { "type": "0", "name": "decimal_size", "value": "35" },
             { "type": "0", "name": "units_show", "value": "1" },
             { "type": "1", "name": "units", "value": "L" }
           ]
@@ -68,7 +81,11 @@
           "x": "36", "y": "5", "width": "12", "height": "4", "view_mode": "0",
           "fields": [
             { "type": "1", "name": "reference", "value": "ZBBON" },
-            { "type": "4", "name": "itemid.0", "value": "BRIDGE_ONLINE" }
+            { "type": "4", "name": "itemid.0", "value": "BRIDGE_ONLINE" },
+            { "type": "0", "name": "show.0", "value": "1" },
+            { "type": "0", "name": "show.1", "value": "2" },
+            { "type": "1", "name": "description", "value": "Bridge" },
+            { "type": "0", "name": "value_size", "value": "45" }
           ]
         },
         {
@@ -77,7 +94,11 @@
           "x": "48", "y": "5", "width": "12", "height": "4", "view_mode": "0",
           "fields": [
             { "type": "1", "name": "reference", "value": "ZBBDC" },
-            { "type": "4", "name": "itemid.0", "value": "BRIDGE_DEVICE_COUNT" }
+            { "type": "4", "name": "itemid.0", "value": "BRIDGE_DEVICE_COUNT" },
+            { "type": "0", "name": "show.0", "value": "1" },
+            { "type": "0", "name": "show.1", "value": "2" },
+            { "type": "1", "name": "description", "value": "Devices" },
+            { "type": "0", "name": "value_size", "value": "45" }
           ]
         },
         {
@@ -87,6 +108,11 @@
           "fields": [
             { "type": "1", "name": "reference", "value": "ZBBMEM" },
             { "type": "4", "name": "itemid.0", "value": "BRIDGE_HOST_MEM" },
+            { "type": "0", "name": "show.0", "value": "1" },
+            { "type": "0", "name": "show.1", "value": "2" },
+            { "type": "1", "name": "description", "value": "Host mem" },
+            { "type": "0", "name": "value_size", "value": "45" },
+            { "type": "0", "name": "decimal_size", "value": "35" },
             { "type": "0", "name": "units_show", "value": "1" },
             { "type": "1", "name": "units", "value": "%" }
           ]
@@ -149,36 +175,29 @@
         },
         {
           "type": "svggraph",
-          "name": "Temperature (7d)",
-          "x": "0", "y": "19", "width": "24", "height": "5", "view_mode": "0",
+          "name": "Temperature & humidity (7d)",
+          "x": "0", "y": "19", "width": "48", "height": "5", "view_mode": "0",
           "fields": [
-            { "type": "1", "name": "ds.0.hosts.0", "value": "*" },
+            { "type": "1", "name": "ds.0.hosts.0", "value": "base-out" },
             { "type": "1", "name": "ds.0.items.0", "value": "Temperature" },
             { "type": "1", "name": "ds.0.color", "value": "E53935" },
             { "type": "0", "name": "ds.0.type", "value": "1" },
             { "type": "0", "name": "ds.0.width", "value": "2" },
             { "type": "0", "name": "ds.0.fill", "value": "0" },
             { "type": "0", "name": "ds.0.transparency", "value": "5" },
-            { "type": "1", "name": "units", "value": "°C" },
+            { "type": "0", "name": "ds.0.axisy", "value": "0" },
+            { "type": "1", "name": "ds.1.hosts.0", "value": "base-out" },
+            { "type": "1", "name": "ds.1.items.0", "value": "Humidity" },
+            { "type": "1", "name": "ds.1.color", "value": "1E88E5" },
+            { "type": "0", "name": "ds.1.type", "value": "1" },
+            { "type": "0", "name": "ds.1.width", "value": "2" },
+            { "type": "0", "name": "ds.1.fill", "value": "0" },
+            { "type": "0", "name": "ds.1.transparency", "value": "5" },
+            { "type": "0", "name": "ds.1.axisy", "value": "1" },
+            { "type": "0", "name": "righty", "value": "1" },
             { "type": "0", "name": "legend", "value": "1" },
-            { "type": "1", "name": "reference", "value": "ZBTMP" }
-          ]
-        },
-        {
-          "type": "svggraph",
-          "name": "Humidity (7d)",
-          "x": "24", "y": "19", "width": "24", "height": "5", "view_mode": "0",
-          "fields": [
-            { "type": "1", "name": "ds.0.hosts.0", "value": "*" },
-            { "type": "1", "name": "ds.0.items.0", "value": "Humidity" },
-            { "type": "1", "name": "ds.0.color", "value": "1E88E5" },
-            { "type": "0", "name": "ds.0.type", "value": "1" },
-            { "type": "0", "name": "ds.0.width", "value": "2" },
-            { "type": "0", "name": "ds.0.fill", "value": "0" },
-            { "type": "0", "name": "ds.0.transparency", "value": "5" },
-            { "type": "1", "name": "units", "value": "%" },
-            { "type": "0", "name": "legend", "value": "1" },
-            { "type": "1", "name": "reference", "value": "ZBHUM" }
+            { "type": "0", "name": "legend_lines", "value": "2" },
+            { "type": "1", "name": "reference", "value": "ZBTH" }
           ]
         },
         {
