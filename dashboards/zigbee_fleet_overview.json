@@ -25,18 +25,16 @@
           "fields": [
             { "type": "2", "name": "groupids.0", "value": "31" },
             { "type": "1", "name": "columns.0.name", "value": "Device" },
-            { "type": "0", "name": "columns.0.data", "value": "1" },
+            { "type": "0", "name": "columns.0.data", "value": "2" },
             { "type": "1", "name": "columns.1.name", "value": "Battery" },
             { "type": "0", "name": "columns.1.data", "value": "1" },
             { "type": "1", "name": "columns.1.item", "value": "Battery" },
-            { "type": "0", "name": "columns.1.aggregate_function", "value": "0" },
             { "type": "0", "name": "columns.1.display", "value": "1" },
             { "type": "1", "name": "columns.1.min", "value": "0" },
             { "type": "1", "name": "columns.1.max", "value": "100" },
             { "type": "1", "name": "columns.1.base_color", "value": "43A047" },
             { "type": "0", "name": "column", "value": "1" },
             { "type": "0", "name": "order", "value": "1" },
-            { "type": "0", "name": "count", "value": "10" },
             { "type": "1", "name": "reference", "value": "ZBBTOP" }
           ]
         },
