@@ -1,0 +1,340 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: 9702754414644deba5cb4ed3e9f33594
+      name: Templates/IoT
+  templates:
+    - uuid: 51ee397300f44bd49dd6fa72282604f0
+      template: 'Zigbee2MQTT bridge by MQTT'
+      name: 'Zigbee2MQTT bridge by MQTT'
+      description: |
+        The zigbee2mqtt gateway itself, monitored as its own Zabbix host — the
+        "master host" of the Zigbee fleet. Standalone (does NOT link the common
+        base; the bridge is not a Zigbee end device). Three retained master
+        topics: bridge/state, bridge/health, bridge/info — items populate
+        immediately on subscribe. bridge/health publishes every health.interval
+        minutes (z2m default 10). The bridge-offline trigger is the highest-value
+        alert: if the gateway dies, every device silently goes stale.
+        Set {$Z2M.BRIDGE.TOPIC}=<base_topic>/bridge (default z2m/bridge).
+      groups:
+        - name: Templates/IoT
+      macros:
+        - macro: '{$Z2M.SESSION}'
+          value: 'zigbee'
+          description: 'Zabbix agent 2 MQTT named session. Broker URL + creds live on the agent.'
+        - macro: '{$Z2M.BRIDGE.TOPIC}'
+          value: 'z2m/bridge'
+          description: 'FULL bridge topic root = <base_topic>/bridge. Default z2m/bridge.'
+        - macro: '{$Z2M.BRIDGE.MEM.MAX}'
+          value: '90'
+          description: 'Host memory percent above which a warning fires.'
+        - macro: '{$Z2M.BRIDGE.DATA.TIMEOUT}'
+          value: '30m'
+          description: 'nodata() window for bridge/health (publishes ~every 10 min).'
+      items:
+        - uuid: d853f5db59ab4ae6977c245e9e276fd9
+          name: 'Bridge: Raw state'
+          type: ZABBIX_ACTIVE
+          key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/state]'
+          delay: '0'
+          history: '1h'
+          trends: '0'
+          value_type: TEXT
+          description: 'Master: retained bridge/state JSON, e.g. {"state":"online"}.'
+          tags:
+            - tag: component
+              value: raw
+        - uuid: b9dcbebcfda2496495a8e282a88d9470
+          name: 'Bridge: Online'
+          type: DEPENDENT
+          key: 'z2m.bridge.online'
+          value_type: UNSIGNED
+          description: '1 when gateway state is online.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/state]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.state'
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value === "online" ? 1 : 0;'
+          valuemap:
+            name: 'Zigbee online'
+          tags:
+            - tag: component
+              value: availability
+        - uuid: ddc164c28970475191ef6d4a29e6412c
+          name: 'Bridge: Raw health'
+          type: ZABBIX_ACTIVE
+          key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          delay: '0'
+          history: '1h'
+          trends: '0'
+          value_type: TEXT
+          description: 'Master: retained bridge/health JSON (os/process/mqtt/devices stats).'
+          tags:
+            - tag: component
+              value: raw
+        - uuid: a8d7f34dad5a41d69a3853179afc56ff
+          name: 'Host: Load average (1m)'
+          type: DEPENDENT
+          key: 'z2m.bridge.load1'
+          value_type: FLOAT
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.os.load_average[0]'
+          tags:
+            - tag: component
+              value: host
+        - uuid: 52696e0e03cd46d1a524a8caa11742a1
+          name: 'Host: Memory used'
+          type: DEPENDENT
+          key: 'z2m.bridge.host_mem_pct'
+          value_type: FLOAT
+          units: '%'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.os.memory_percent'
+          tags:
+            - tag: component
+              value: host
+        - uuid: e2f6fdb863924171b4a7d2645e62e2bc
+          name: 'Process: Uptime'
+          type: DEPENDENT
+          key: 'z2m.bridge.uptime'
+          value_type: UNSIGNED
+          units: s
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.process.uptime_sec'
+          tags:
+            - tag: component
+              value: process
+        - uuid: 6ac4dae90ffa410db195064ae947b4ce
+          name: 'Process: Memory used'
+          type: DEPENDENT
+          key: 'z2m.bridge.proc_mem'
+          value_type: FLOAT
+          units: '!MB'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.process.memory_used_mb'
+          tags:
+            - tag: component
+              value: process
+        - uuid: 9c30bb1b99b1438d9e82578d6e3e7267
+          name: 'MQTT: Connected'
+          type: DEPENDENT
+          key: 'z2m.bridge.mqtt_connected'
+          value_type: UNSIGNED
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.mqtt.connected'
+            - type: BOOL_TO_DECIMAL
+              parameters:
+                - ''
+          valuemap:
+            name: 'Zigbee boolean'
+          tags:
+            - tag: component
+              value: availability
+        - uuid: b80e01da0a24448cac91144e16b4613b
+          name: 'MQTT: Queued'
+          type: DEPENDENT
+          key: 'z2m.bridge.mqtt_queued'
+          value_type: UNSIGNED
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.mqtt.queued'
+          tags:
+            - tag: component
+              value: mqtt
+        - uuid: 53419dc0df8b4de49d9b13daf4124725
+          name: 'MQTT: Published (total)'
+          type: DEPENDENT
+          key: 'z2m.bridge.mqtt_published'
+          value_type: UNSIGNED
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.mqtt.published'
+          tags:
+            - tag: component
+              value: mqtt
+        - uuid: bfbc3f7a884447bdb218eeaa22aedb12
+          name: 'Devices: Total leaves'
+          type: DEPENDENT
+          key: 'z2m.bridge.total_leaves'
+          value_type: UNSIGNED
+          description: 'Sum of leave_count across all devices; >0 means a device left the network.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var d = JSON.parse(value).devices || {};
+                  var n = 0;
+                  for (var k in d) { n += (d[k].leave_count || 0); }
+                  return n;
+          tags:
+            - tag: component
+              value: network
+        - uuid: 0b95456254004cc8bc0ac687e09eff59
+          name: 'Devices: Total messages/sec'
+          type: DEPENDENT
+          key: 'z2m.bridge.total_msgs_per_sec'
+          value_type: FLOAT
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var d = JSON.parse(value).devices || {};
+                  var s = 0;
+                  for (var k in d) { s += (d[k].messages_per_sec || 0); }
+                  return s;
+          tags:
+            - tag: component
+              value: network
+        - uuid: 482c6a9b952040b0bee966d49af236e5
+          name: 'Devices: Count'
+          type: DEPENDENT
+          key: 'z2m.bridge.device_count'
+          value_type: UNSIGNED
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - 'return Object.keys(JSON.parse(value).devices || {}).length;'
+          tags:
+            - tag: component
+              value: network
+        - uuid: 29d43bc8a2ef43319ef280227c8cedf8
+          name: 'Bridge: Raw info'
+          type: ZABBIX_ACTIVE
+          key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/info]'
+          delay: '0'
+          history: '1h'
+          trends: '0'
+          value_type: TEXT
+          description: 'Master: retained bridge/info JSON (config, version, coordinator).'
+          tags:
+            - tag: component
+              value: raw
+        - uuid: a16a03fdd41a45f2bf1b0fb6678b51e8
+          name: 'Zigbee channel'
+          type: DEPENDENT
+          key: 'z2m.bridge.channel'
+          value_type: UNSIGNED
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/info]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.config.advanced.channel'
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - '1d'
+          tags:
+            - tag: component
+              value: inventory
+        - uuid: ff84d085a84b45bca494cb2b61592168
+          name: 'z2m version'
+          type: DEPENDENT
+          key: 'z2m.bridge.version'
+          value_type: CHAR
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/info]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.version'
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - '1d'
+          tags:
+            - tag: component
+              value: inventory
+        - uuid: 77d3ae8914ab45e985803223339053bf
+          name: 'Zigbee PAN ID'
+          type: DEPENDENT
+          key: 'z2m.bridge.pan_id'
+          value_type: UNSIGNED
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/info]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.config.advanced.pan_id'
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - '1d'
+          tags:
+            - tag: component
+              value: inventory
+      valuemaps:
+        - uuid: 25e4e13c3b64473db4ec9b8acba46d06
+          name: 'Zigbee online'
+          mappings:
+            - value: '0'
+              newvalue: 'Offline'
+            - value: '1'
+              newvalue: 'Online'
+        - uuid: 2e2484a8f8894e5a9979ec9f58fd3185
+          name: 'Zigbee boolean'
+          mappings:
+            - value: '0'
+              newvalue: 'No'
+            - value: '1'
+              newvalue: 'Yes'
+  triggers:
+    - uuid: 86c785474bea4361848c0e17687c3581
+      expression: 'last(/Zigbee2MQTT bridge by MQTT/z2m.bridge.online)=0'
+      name: 'Zigbee2MQTT: Bridge OFFLINE (whole network down)'
+      priority: HIGH
+      description: 'The z2m gateway reported offline. Every Zigbee device is now unreachable/stale — this is the single liveness signal for the fleet.'
+    - uuid: 133e3e2e2a294c659d070674143a6eb0
+      expression: 'nodata(/Zigbee2MQTT bridge by MQTT/mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health],{$Z2M.BRIDGE.DATA.TIMEOUT})=1'
+      name: 'Zigbee2MQTT: No bridge health data'
+      priority: WARNING
+      description: 'No bridge/health message within the timeout; z2m may be stopped or the agent lost the broker.'
+    - uuid: 5cdcb1e061c5456b845478fc916f5d81
+      expression: 'min(/Zigbee2MQTT bridge by MQTT/z2m.bridge.host_mem_pct,15m)>{$Z2M.BRIDGE.MEM.MAX}'
+      name: 'Zigbee2MQTT: High host memory (>{$Z2M.BRIDGE.MEM.MAX}%)'
+      priority: WARNING
+      description: 'Host memory stayed above the threshold for 15m.'
+    - uuid: 78c9de6d814f48cb8d4d15433de433c8
+      expression: 'last(/Zigbee2MQTT bridge by MQTT/z2m.bridge.mqtt_connected)=0'
+      name: 'Zigbee2MQTT: MQTT disconnected'
+      priority: WARNING
+      description: 'z2m lost its connection to the MQTT broker.'
+    - uuid: 3b8a1e9c5d7f42a0b6c8e1d4f2a9b3c7
+      expression: 'change(/Zigbee2MQTT bridge by MQTT/z2m.bridge.total_leaves)>0'
+      name: 'Zigbee2MQTT: A device left the network'
+      priority: WARNING
+      manual_close: 'YES'
+      description: 'Total device leave_count increased — a device dropped off the Zigbee network.'

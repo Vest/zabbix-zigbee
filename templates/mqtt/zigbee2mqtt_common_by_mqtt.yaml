@@ -1,0 +1,142 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: 9702754414644deba5cb4ed3e9f33594
+      name: Templates/IoT
+  templates:
+    - uuid: 815e57535616425a881432e95b65641a
+      template: 'Zigbee2MQTT common by MQTT'
+      name: 'Zigbee2MQTT common by MQTT'
+      description: |
+        Common base for zigbee2mqtt (z2m) devices monitored over MQTT via the
+        Zabbix agent 2 MQTT plugin. z2m publishes the entire device state as one
+        JSON blob to z2m/<device>; this base defines the master mqtt.get item and
+        the device-agnostic dependents (linkquality, battery, firmware update).
+        Link this from a device template that adds the device's own metrics.
+
+        Per host (usually inherited via the linking template):
+          {$Z2M.TOPIC}   = FULL topic, e.g. z2m/<device-name> (REQUIRED, verbatim)
+          {$Z2M.SESSION} = agent 2 MQTT session name (default 'zigbee');
+                           broker URL + creds live on the agent, not here.
+        NOTE: device topics are NOT retained, so items populate on the next
+        device change after the agent subscribes (not immediately).
+      groups:
+        - name: Templates/IoT
+      macros:
+        - macro: '{$Z2M.SESSION}'
+          value: 'zigbee'
+          description: 'Zabbix agent 2 MQTT named session (Plugins.MQTT.Sessions.<name>.*). Broker URL + credentials live on the agent, not here.'
+        - macro: '{$Z2M.TOPIC}'
+          value: ''
+          description: 'REQUIRED. FULL device MQTT topic = <base_topic>/<device-name>, e.g. z2m/<device-name>. Passed verbatim. Set per host.'
+        - macro: '{$Z2M.DATA.TIMEOUT}'
+          value: '30m'
+          description: 'nodata() window for the master item; if no message arrives within this the device is considered silent.'
+        - macro: '{$Z2M.BATTERY.MIN}'
+          value: '15'
+          description: 'Battery percent below which a low-battery warning fires.'
+        - macro: '{$Z2M.LINKQUALITY.MIN}'
+          value: '20'
+          description: 'Zigbee LQI below which the link is considered weak (0-255 scale).'
+      items:
+        - uuid: 77c02c9d4e584470a6659955ffc18383
+          name: 'Device: Raw state (JSON)'
+          type: ZABBIX_ACTIVE
+          key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          delay: '0'
+          history: '1h'
+          trends: '0'
+          value_type: TEXT
+          description: 'Master item: full JSON payload from z2m/<device>. Dependents parse fields from this. history=1h so nodata() liveness can read it.'
+          tags:
+            - tag: component
+              value: raw
+        - uuid: 782b98ac39c34d6599fb9de25934930e
+          name: 'Link quality (LQI)'
+          type: DEPENDENT
+          key: 'z2m.linkquality'
+          value_type: UNSIGNED
+          units: '!lqi'
+          description: 'Zigbee link quality indicator (0-255). Kept with history/trends for long-term signal statistics.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.linkquality'
+          tags:
+            - tag: component
+              value: network
+        - uuid: 193da1dcec0a4de097ee67c60ee16c3f
+          name: 'Battery'
+          type: DEPENDENT
+          key: 'z2m.battery'
+          value_type: UNSIGNED
+          units: '%'
+          description: 'Remaining battery (%). Empty on mains-powered devices (no battery field) — that is expected and the low-battery trigger will not fire.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.battery'
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - '1h'
+          tags:
+            - tag: component
+              value: battery
+        - uuid: 7a5892593c60447e827dab76746ad6aa
+          name: 'Firmware update available'
+          type: DEPENDENT
+          key: 'z2m.update_available'
+          value_type: UNSIGNED
+          description: '1 if a firmware update is pending (update.state=available OR installed_version != latest_version), else 0. Missing update object => 0.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var u = JSON.parse(value).update;
+                  if (!u) return 0;
+                  if (u.state === "available") return 1;
+                  if (u.installed_version != null && u.latest_version != null
+                      && u.installed_version !== u.latest_version) return 1;
+                  return 0;
+          valuemap:
+            name: 'Zigbee boolean'
+          tags:
+            - tag: component
+              value: firmware
+      valuemaps:
+        - uuid: fbb65c558e824627b0ab09622a31a175
+          name: 'Zigbee boolean'
+          mappings:
+            - value: '0'
+              newvalue: 'No'
+            - value: '1'
+              newvalue: 'Yes'
+        - uuid: 79f08c9696c949d581fea28bfc26c21f
+          name: 'Zigbee state'
+          mappings:
+            - value: '0'
+              newvalue: 'OFF'
+            - value: '1'
+              newvalue: 'ON'
+  triggers:
+    - uuid: 55e2b461fe3f406d8dfbc76706c80e56
+      expression: 'last(/Zigbee2MQTT common by MQTT/z2m.battery)<{$Z2M.BATTERY.MIN} and last(/Zigbee2MQTT common by MQTT/z2m.battery)>0'
+      name: 'Zigbee: Low battery (<{$Z2M.BATTERY.MIN}%)'
+      priority: WARNING
+      description: 'Battery dropped below the threshold. The >0 guard avoids firing on mains devices that report battery 0/empty.'
+    - uuid: 615a454f984d48d0a96c11a5d66165f7
+      expression: 'max(/Zigbee2MQTT common by MQTT/z2m.linkquality,15m)<{$Z2M.LINKQUALITY.MIN}'
+      name: 'Zigbee: Weak link quality (<{$Z2M.LINKQUALITY.MIN} LQI)'
+      priority: INFO
+      description: 'LQI stayed below the threshold for 15m; the device may be far from a router/coordinator. INFO — primarily a statistic.'
+    - uuid: eb883da0ee854b3f887d7dbe955070fb
+      expression: 'nodata(/Zigbee2MQTT common by MQTT/mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}],{$Z2M.DATA.TIMEOUT})=1'
+      name: 'Zigbee: No data from device'
+      priority: WARNING
+      description: 'No MQTT message received within {$Z2M.DATA.TIMEOUT}. The device may be offline, or (for battery devices) simply quiet — tune the macro per device class.'

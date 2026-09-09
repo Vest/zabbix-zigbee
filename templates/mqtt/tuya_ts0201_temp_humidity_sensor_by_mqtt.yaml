@@ -1,0 +1,70 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: 9702754414644deba5cb4ed3e9f33594
+      name: Templates/IoT
+  templates:
+    - uuid: c01bb3373b754962ac0440e075882720
+      template: 'Tuya TS0201 temp-humidity sensor by MQTT'
+      name: 'Tuya TS0201 temp-humidity sensor by MQTT'
+      description: |
+        Zigbee temperature + humidity sensor (Tuya TS0201; e.g. TH09Z,
+        manufacturer _TZ3000_yupc0pb7) over MQTT. Links "Zigbee2MQTT common by
+        MQTT" for battery/linkquality/firmware/liveness; adds temperature and
+        humidity. Fits z2m friendly-name e.g. base-out. Import the common base
+        FIRST. Battery-powered — battery + low-battery trigger come from the base.
+      templates:
+        - name: 'Zigbee2MQTT common by MQTT'
+      groups:
+        - name: Templates/IoT
+      macros:
+        - macro: '{$Z2M.TEMP.MAX}'
+          value: '40'
+          description: 'High-temperature warning threshold (°C). Trigger DISABLED by default — site-specific.'
+        - macro: '{$Z2M.TEMP.MIN}'
+          value: '-10'
+          description: 'Low-temperature warning threshold (°C). Trigger DISABLED by default — site-specific.'
+      items:
+        - uuid: 75455c8dd8fc474eb17b453a39b30db1
+          name: 'Temperature'
+          type: DEPENDENT
+          key: 'z2m.sensor.temperature'
+          value_type: FLOAT
+          units: °C
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.temperature'
+          tags:
+            - tag: component
+              value: climate
+        - uuid: 2d19f8d8371b48ec99dc771dc555e495
+          name: 'Humidity'
+          type: DEPENDENT
+          key: 'z2m.sensor.humidity'
+          value_type: FLOAT
+          units: '%'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.humidity'
+          tags:
+            - tag: component
+              value: climate
+  triggers:
+    - uuid: 47f6088a874c460880ee84c1f0886842
+      expression: 'last(/Tuya TS0201 temp-humidity sensor by MQTT/z2m.sensor.temperature)>{$Z2M.TEMP.MAX}'
+      name: 'Zigbee sensor: High temperature (>{$Z2M.TEMP.MAX} °C)'
+      priority: WARNING
+      status: DISABLED
+      description: 'Temperature above the site-specific threshold. Disabled by default — enable and tune per location.'
+    - uuid: 6dcf54d6d2ab49d4b08d27075a324e08
+      expression: 'last(/Tuya TS0201 temp-humidity sensor by MQTT/z2m.sensor.temperature)<{$Z2M.TEMP.MIN}'
+      name: 'Zigbee sensor: Low temperature (<{$Z2M.TEMP.MIN} °C)'
+      priority: WARNING
+      status: DISABLED
+      description: 'Temperature below the site-specific threshold (e.g. frost risk). Disabled by default — enable and tune per location.'

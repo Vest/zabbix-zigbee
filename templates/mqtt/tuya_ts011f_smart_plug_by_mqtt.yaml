@@ -1,0 +1,160 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: 9702754414644deba5cb4ed3e9f33594
+      name: Templates/IoT
+  templates:
+    - uuid: 93af772e31b94c94a428e5ea61923132
+      template: 'Tuya TS011F smart plug by MQTT'
+      name: 'Tuya TS011F smart plug by MQTT'
+      description: |
+        Metered Zigbee smart plug (Tuya TS011F; e.g. Nous A7Z,
+        manufacturer _TZ3008_reatplte) over MQTT. Links "Zigbee2MQTT common by
+        MQTT" for linkquality/firmware/liveness; adds on/off state and power
+        metering (power, current, voltage, cumulative energy). Fits z2m
+        friendly-names e.g. base-plug-1, base-plug-2, living-plug. Import the
+        common base FIRST. Mains-powered (Router) — battery item stays empty.
+      templates:
+        - name: 'Zigbee2MQTT common by MQTT'
+      groups:
+        - name: Templates/IoT
+      macros:
+        - macro: '{$Z2M.POWER.MAX}'
+          value: '3680'
+          description: 'Active-power warning threshold, watts (default ~16 A * 230 V).'
+      items:
+        - uuid: d536ef5fee9b4e7983d08cd318129633
+          name: 'State'
+          type: DEPENDENT
+          key: 'z2m.plug.state'
+          value_type: UNSIGNED
+          description: 'Relay on/off (1=ON).'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.state'
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value === "ON" ? 1 : 0;'
+          valuemap:
+            name: 'Zigbee state'
+          tags:
+            - tag: component
+              value: switch
+        - uuid: 6ea53c05850740ce829e52c9b1499cf5
+          name: 'Power'
+          type: DEPENDENT
+          key: 'z2m.plug.power'
+          value_type: FLOAT
+          units: W
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.power'
+          tags:
+            - tag: component
+              value: power
+        - uuid: 0da71d0322604883a4b0aa8c99dd860e
+          name: 'Current'
+          type: DEPENDENT
+          key: 'z2m.plug.current'
+          value_type: FLOAT
+          units: A
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.current'
+          tags:
+            - tag: component
+              value: power
+        - uuid: bd6bc6a1028046bfbcb35fe7c9cb3598
+          name: 'Voltage'
+          type: DEPENDENT
+          key: 'z2m.plug.voltage'
+          value_type: FLOAT
+          units: V
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.voltage'
+          tags:
+            - tag: component
+              value: power
+        - uuid: c8918065318f48b1a2e8984ddb91a810
+          name: 'Energy (cumulative)'
+          type: DEPENDENT
+          key: 'z2m.plug.energy'
+          value_type: FLOAT
+          units: kWh
+          description: 'Cumulative consumed energy (monotonic device counter). Daily/weekly use = change() over this on the dashboard.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.energy'
+          tags:
+            - tag: component
+              value: energy
+        - uuid: dcd2384f7471491e91b898617ce14666
+          name: 'Child lock'
+          type: DEPENDENT
+          key: 'z2m.plug.child_lock'
+          value_type: UNSIGNED
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.child_lock'
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value === "LOCK" ? 1 : 0;'
+          valuemap:
+            name: 'Zigbee boolean'
+          tags:
+            - tag: component
+              value: config
+        - uuid: 2b5d3d5998a34c26b41169760f140aa5
+          name: 'Firmware update state'
+          type: DEPENDENT
+          key: 'z2m.plug.update_state'
+          value_type: CHAR
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.update.state'
+          tags:
+            - tag: component
+              value: firmware
+      valuemaps:
+        - uuid: c710dc73236f4251a66c6fc29118ced9
+          name: 'Zigbee boolean'
+          mappings:
+            - value: '0'
+              newvalue: 'No'
+            - value: '1'
+              newvalue: 'Yes'
+        - uuid: 6600ecf7a65841fbaead3686c07b5778
+          name: 'Zigbee state'
+          mappings:
+            - value: '0'
+              newvalue: 'OFF'
+            - value: '1'
+              newvalue: 'ON'
+  triggers:
+    - uuid: 4856285757c34ff5b5d36f8901a39b5f
+      expression: 'last(/Tuya TS011F smart plug by MQTT/z2m.plug.power)>{$Z2M.POWER.MAX}'
+      name: 'Zigbee plug: High power draw (>{$Z2M.POWER.MAX} W)'
+      priority: WARNING
+      description: 'Active power exceeded the threshold.'

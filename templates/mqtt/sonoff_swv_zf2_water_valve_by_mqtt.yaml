@@ -1,0 +1,320 @@
+zabbix_export:
+  version: '7.4'
+  template_groups:
+    - uuid: 9702754414644deba5cb4ed3e9f33594
+      name: Templates/IoT
+  templates:
+    - uuid: bc8b1e51d6dd4e85b08d0d6edb255224
+      template: 'SONOFF SWV-ZF2 water valve by MQTT'
+      name: 'SONOFF SWV-ZF2 water valve by MQTT'
+      description: |
+        SONOFF SWV-ZF2 dual-channel Zigbee smart water valve, over MQTT (agent 2
+        MQTT plugin). Links "Zigbee2MQTT common by MQTT" for battery/linkquality/
+        firmware/liveness; adds irrigation metrics: valve state, run duration and
+        live volume per channel, per-event water litres (channels + summed) and
+        valve abnormal state. Import the common base FIRST. Fits z2m friendly-name
+        e.g. garden-pump. Set {$Z2M.TOPIC}=z2m/<device-name> on the host.
+      templates:
+        - name: 'Zigbee2MQTT common by MQTT'
+      groups:
+        - name: Templates/IoT
+      macros:
+        - macro: '{$Z2M.MODEL}'
+          value: 'SWV-ZF2'
+          description: 'Device model, fed to host inventory Model.'
+      items:
+        - uuid: 4522530f00764791968f31984047072d
+          name: 'Valve 1: State'
+          type: DEPENDENT
+          key: 'z2m.valve.state[1]'
+          value_type: UNSIGNED
+          description: 'Channel 1 valve open state (1=ON/open).'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.state_1'
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value === "ON" ? 1 : 0;'
+          valuemap:
+            name: 'Zigbee state'
+          tags:
+            - tag: component
+              value: valve
+        - uuid: cc07df95cb58462693ef7b93e2c69e67
+          name: 'Valve 2: State'
+          type: DEPENDENT
+          key: 'z2m.valve.state[2]'
+          value_type: UNSIGNED
+          description: 'Channel 2 valve open state (1=ON/open).'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.state_2'
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value === "ON" ? 1 : 0;'
+          valuemap:
+            name: 'Zigbee state'
+          tags:
+            - tag: component
+              value: valve
+        - uuid: 1b657f35414e4e87985e72590456b27c
+          name: 'Valve 1: Live run duration'
+          type: DEPENDENT
+          key: 'z2m.valve.duration[1]'
+          value_type: UNSIGNED
+          units: min
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.real_time_irrigation_duration_1'
+          tags:
+            - tag: component
+              value: valve
+        - uuid: 4ad54c0d8fad4cae93b2f1e3aca83a51
+          name: 'Valve 2: Live run duration'
+          type: DEPENDENT
+          key: 'z2m.valve.duration[2]'
+          value_type: UNSIGNED
+          units: min
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.real_time_irrigation_duration_2'
+          tags:
+            - tag: component
+              value: valve
+        - uuid: d9fa3487063349d8a945472c118ec5fe
+          name: 'Live irrigation volume'
+          type: DEPENDENT
+          key: 'z2m.valve.rt_volume'
+          value_type: FLOAT
+          units: L
+          description: 'real_time_irrigation_volume — live volume during an active run.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.real_time_irrigation_volume'
+          tags:
+            - tag: component
+              value: water
+        - uuid: 5111414d471f410b87878f08e6bbedac
+          name: 'Irrigation volume this hour'
+          type: DEPENDENT
+          key: 'z2m.valve.hour_volume'
+          value_type: FLOAT
+          units: L
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.hour_irrigation_volume'
+          tags:
+            - tag: component
+              value: water
+        - uuid: f0336f558c904f8589c9d71f96658e02
+          name: 'Valve 1: Water used per completed event'
+          type: DEPENDENT
+          key: 'z2m.valve.event_litres[1]'
+          value_type: FLOAT
+          units: L
+          description: 'Litres delivered, emitted ONLY once per newly-completed event (schedule_status=end, new actual_end_time). Feeds sum() for litres/day. DISCARD_UNCHANGED drops republished identical events.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var s = JSON.parse(value).irrigation_schedule_status_1;
+                  if (!s || s.schedule_status !== "end") throw "no completed event";
+                  return s.actual_end_time + "|" + s.actual_irrigation_amount;
+            - type: DISCARD_UNCHANGED
+              parameters:
+                - ''
+            - type: JAVASCRIPT
+              parameters:
+                - 'return parseFloat(value.split("|")[1]);'
+          tags:
+            - tag: component
+              value: water
+        - uuid: 1a84fd4bd25841c394bbaddf7ea599cf
+          name: 'Valve 2: Water used per completed event'
+          type: DEPENDENT
+          key: 'z2m.valve.event_litres[2]'
+          value_type: FLOAT
+          units: L
+          description: 'Litres delivered on channel 2, emitted once per newly-completed event. See channel 1 for mechanism.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var s = JSON.parse(value).irrigation_schedule_status_2;
+                  if (!s || s.schedule_status !== "end") throw "no completed event";
+                  return s.actual_end_time + "|" + s.actual_irrigation_amount;
+            - type: DISCARD_UNCHANGED
+              parameters:
+                - ''
+            - type: JAVASCRIPT
+              parameters:
+                - 'return parseFloat(value.split("|")[1]);'
+          tags:
+            - tag: component
+              value: water
+        - uuid: b24a83770711436caff8df5516f1cf1a
+          name: 'Water used per completed event (both channels)'
+          type: DEPENDENT
+          key: 'z2m.valve.event_litres_total'
+          value_type: FLOAT
+          units: L
+          description: 'Sum of channels 1+2 litres, emitted once per newly-completed event on either channel. Keyed on the pair of actual_end_times so republished payloads are discarded.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var d = JSON.parse(value);
+                  var s1 = d.irrigation_schedule_status_1 || {};
+                  var s2 = d.irrigation_schedule_status_2 || {};
+                  var e1 = s1.schedule_status === "end";
+                  var e2 = s2.schedule_status === "end";
+                  if (!e1 && !e2) throw "no completed event";
+                  var l1 = e1 ? (s1.actual_irrigation_amount || 0) : 0;
+                  var l2 = e2 ? (s2.actual_irrigation_amount || 0) : 0;
+                  return (s1.actual_end_time||"") + "/" + (s2.actual_end_time||"") + "|" + (l1 + l2);
+            - type: DISCARD_UNCHANGED
+              parameters:
+                - ''
+            - type: JAVASCRIPT
+              parameters:
+                - 'return parseFloat(value.split("|")[1]);'
+          tags:
+            - tag: component
+              value: water
+        - uuid: fb912b77de4f491983e84563229d1e21
+          name: 'Valve abnormal state'
+          type: DEPENDENT
+          key: 'z2m.valve.abnormal'
+          value_type: UNSIGNED
+          description: 'valve_abnormal_state: 0=normal, 1=abnormal (leak/shortage/fault).'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.valve_abnormal_state'
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value === "normal" ? 0 : 1;'
+          valuemap:
+            name: 'Zigbee boolean'
+          tags:
+            - tag: component
+              value: fault
+        - uuid: a1f18ff3f39d4edca996fc44368064b4
+          name: 'Child lock'
+          type: DEPENDENT
+          key: 'z2m.valve.child_lock'
+          value_type: UNSIGNED
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.child_lock'
+            - type: JAVASCRIPT
+              parameters:
+                - 'return value === "LOCK" ? 1 : 0;'
+          valuemap:
+            name: 'Zigbee boolean'
+          tags:
+            - tag: component
+              value: config
+        - uuid: 35f30537ec2d49e994e5b7ba8a4ec738
+          name: 'Firmware update state'
+          type: DEPENDENT
+          key: 'z2m.valve.update_state'
+          value_type: CHAR
+          description: 'update.state: idle/scheduled/available/updating.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.update.state'
+          tags:
+            - tag: component
+              value: firmware
+        - uuid: 5d78e31aae614bc3b8a72df115a069b2
+          name: 'Model'
+          type: DEPENDENT
+          key: 'z2m.valve.model'
+          value_type: CHAR
+          description: 'Constant device model from {$Z2M.MODEL}; feeds host inventory Model.'
+          inventory_link: MODEL
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - 'return "{$Z2M.MODEL}";'
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - '1d'
+          tags:
+            - tag: component
+              value: inventory
+        - uuid: cb47ea74fc4d4971a8bc723d07f9abc4
+          name: 'Vendor'
+          type: DEPENDENT
+          key: 'z2m.valve.vendor'
+          value_type: CHAR
+          description: 'Constant "SONOFF"; feeds host inventory Vendor.'
+          inventory_link: VENDOR
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - 'return "SONOFF";'
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - '1d'
+          tags:
+            - tag: component
+              value: inventory
+      valuemaps:
+        - uuid: 80a98f67c3fa4b15bcdf3b920bbb016b
+          name: 'Zigbee boolean'
+          mappings:
+            - value: '0'
+              newvalue: 'No'
+            - value: '1'
+              newvalue: 'Yes'
+        - uuid: fb14cbdd5a1649bf9a4aa62b3b287a5d
+          name: 'Zigbee state'
+          mappings:
+            - value: '0'
+              newvalue: 'OFF'
+            - value: '1'
+              newvalue: 'ON'
+  triggers:
+    - uuid: 724b21c3dab74b62bcef13127d389b36
+      expression: 'last(/SONOFF SWV-ZF2 water valve by MQTT/z2m.valve.abnormal)=1'
+      name: 'Zigbee valve: Abnormal state (leak/shortage/fault)'
+      priority: HIGH
+      description: 'valve_abnormal_state is not "normal" — possible water leak, shortage, or valve fault.'
