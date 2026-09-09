@@ -19,6 +19,7 @@ zigbee2mqtt --publish--> MQTT broker --subscribe--> Zabbix agent 2 (MQTT plugin)
 - **Common base + linked device templates.** `Zigbee2MQTT common by MQTT` holds device-agnostic items (`linkquality`, `battery`, firmware-update-available, `nodata()` liveness). Device templates link it via a `templates:` block and add their own metrics. The bridge template is **standalone** (the gateway is not a Zigbee end device).
 - **Retained vs not:** `z2m/bridge/{state,health,info}` are MQTT-retained → items populate immediately on subscribe. Device topics are **not** retained → they populate only on the next change. This is why cumulative counters (e.g. water litres) are derived by Zabbix from clean per-event values, not read from a device lifetime total.
 - **Broker URL + credentials live in a Zabbix agent 2 named MQTT session** (`Plugins.MQTT.Sessions.<name>.*`), never in a template. `{$Z2M.TOPIC}` holds the FULL topic (`z2m/<device>`), passed verbatim — the session `Topic` field is a default only and is NOT prepended.
+- **Active checks need `Hostname`.** `mqtt.get` items are active: agent 2 pulls its item list by matching its `Hostname` to a Zabbix host. One agent 2 serves all Zigbee hosts, so `zabbix_agent2.conf` `Hostname=` must list every Zigbee host name (comma-separated, appended to the existing value). Without it the items show no error but receive NO data — the agent never requests them.
 
 ## Hard rules (do not regress)
 

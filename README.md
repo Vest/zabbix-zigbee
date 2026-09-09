@@ -56,6 +56,23 @@ value-map/trigger placement, no cross-file duplicate UUIDs) before you import.
 
 Set host Inventory mode to Automatic to auto-populate Model/Vendor.
 
+### 4. Register the hosts with agent 2 (REQUIRED for active checks)
+
+`mqtt.get` items are **active checks**: agent 2 pulls its item list from the
+server by matching its `Hostname` to a Zabbix host. One agent 2 runs on the
+Zabbix box but serves *all* the Zigbee hosts, so `Hostname` must list every one
+of them (comma-separated). In `zabbix_agent2.conf`:
+
+    Hostname=<existing-agent-host>,garden-pump,living-plug,base-plug-1,base-plug-2,base-out,z2m-bridge
+
+APPEND to the existing `Hostname` — do not replace it, or you break the box's
+own monitoring. Each name must match the Zabbix host name exactly. Restart
+agent 2. Without this, items stay green/unsupported-free but receive NO data
+(the agent simply never asks for them).
+
+> Retained `z2m/bridge/*` topics populate within a cycle of the restart; device
+> topics are not retained, so device items fill in on each device's next publish.
+
 ## Notes
 
 - Device topics are not retained: device items populate on the next change after
