@@ -73,9 +73,14 @@ when a new schema fact is learned from a real import failure.
 - Item value widget needs `show.N` fields to control content: 1=description,
   2=value, 3=time, 5=change indicator. Without them it shows the time large and
   the name as the value. `value_size`/`decimal_size` size the number.
-- tophosts: every column must be complete. Column `data` codes: `2`=host name
-  (no item needed), `1`=item value (REQUIRES `columns.N.item`). A column with
-  `data=1` and no `item` makes the whole widget "not fully configured". Make the
-  label column `data=2` and the value column `data=1`+`item`+`display`.
+- tophosts: `columns.N.data` codes: `1`=Item value (REQUIRES `columns.N.item`),
+  `2`=Host name, `3`=Text. Minimum working column set (verified live): a Host-name
+  column is just `{data:2, name}`; an Item-value column is `{data:1, name, item,
+  base_color}`. Two things that make it "not fully configured" even though the API
+  accepts the create: (1) a **present-but-EMPTY `base_color`** (`""`) fails
+  validation — omit the field entirely instead of sending blank; (2) `display=1`
+  ("As is") combined with `min`/`max` is invalid — min/max only apply to the bar/
+  indicator displays. Set `base_color` (a real hex) to get the green bar; drop
+  display/min/max. `column` = the 1-based sort column index.
 - Template names (technical `name`) must NOT contain `/` — rejected as an invalid
   host name.
