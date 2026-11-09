@@ -593,6 +593,127 @@
               "value": "ZBPWR"
             }
           ]
+        },
+        {
+          "type": "svggraph",
+          "name": "Bridge load & memory (7d)",
+          "x": "0",
+          "y": "24",
+          "width": "72",
+          "height": "5",
+          "view_mode": "0",
+          "fields": [
+            {
+              "type": "1",
+              "name": "ds.0.hosts.0",
+              "value": "z2m-bridge"
+            },
+            {
+              "type": "1",
+              "name": "ds.0.items.0",
+              "value": "Host: Load average (1m)"
+            },
+            {
+              "type": "1",
+              "name": "ds.0.color",
+              "value": "8E24AA"
+            },
+            {
+              "type": "0",
+              "name": "ds.0.width",
+              "value": "2"
+            },
+            {
+              "type": "1",
+              "name": "ds.1.hosts.0",
+              "value": "z2m-bridge"
+            },
+            {
+              "type": "1",
+              "name": "ds.1.items.0",
+              "value": "Host: Load average (5m)"
+            },
+            {
+              "type": "1",
+              "name": "ds.1.color",
+              "value": "C158DC"
+            },
+            {
+              "type": "0",
+              "name": "ds.1.width",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "ds.2.hosts.0",
+              "value": "z2m-bridge"
+            },
+            {
+              "type": "1",
+              "name": "ds.2.items.0",
+              "value": "Host: Load average (15m)"
+            },
+            {
+              "type": "1",
+              "name": "ds.2.color",
+              "value": "E1BEE7"
+            },
+            {
+              "type": "0",
+              "name": "ds.2.width",
+              "value": "1"
+            },
+            {
+              "type": "1",
+              "name": "ds.3.hosts.0",
+              "value": "z2m-bridge"
+            },
+            {
+              "type": "1",
+              "name": "ds.3.items.0",
+              "value": "Host: Memory used"
+            },
+            {
+              "type": "1",
+              "name": "ds.3.color",
+              "value": "1E88E5"
+            },
+            {
+              "type": "0",
+              "name": "ds.3.width",
+              "value": "2"
+            },
+            {
+              "type": "0",
+              "name": "ds.3.axisy",
+              "value": "1"
+            },
+            {
+              "type": "0",
+              "name": "righty_min",
+              "value": "0"
+            },
+            {
+              "type": "0",
+              "name": "righty_max",
+              "value": "100"
+            },
+            {
+              "type": "0",
+              "name": "legend_columns",
+              "value": "4"
+            },
+            {
+              "type": "0",
+              "name": "legend_lines",
+              "value": "2"
+            },
+            {
+              "type": "1",
+              "name": "reference",
+              "value": "ZBLDM"
+            }
+          ]
         }
       ]
     }

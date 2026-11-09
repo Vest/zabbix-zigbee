@@ -107,6 +107,34 @@ zabbix_export:
           tags:
             - tag: component
               value: host
+        - uuid: e21734f3ba0e4984b553596725f00ec6
+          name: 'Host: Load average (5m)'
+          type: DEPENDENT
+          key: 'z2m.bridge.load5'
+          value_type: FLOAT
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.os.load_average[1]'
+          tags:
+            - tag: component
+              value: host
+        - uuid: 6832424cf03a4a72851560e25a407bd4
+          name: 'Host: Load average (15m)'
+          type: DEPENDENT
+          key: 'z2m.bridge.load15'
+          value_type: FLOAT
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.os.load_average[2]'
+          tags:
+            - tag: component
+              value: host
         - uuid: 52696e0e03cd46d1a524a8caa11742a1
           name: 'Host: Memory used'
           type: DEPENDENT
@@ -196,6 +224,21 @@ zabbix_export:
             - type: JSONPATH
               parameters:
                 - '$.mqtt.published'
+          tags:
+            - tag: component
+              value: mqtt
+        - uuid: 5569c2a539c14854ae04dd3a93d67028
+          name: 'MQTT: Received (total)'
+          type: DEPENDENT
+          key: 'z2m.bridge.mqtt_received'
+          value_type: UNSIGNED
+          description: 'Total MQTT messages received by the bridge. Pairs with MQTT: Published for full broker throughput.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.mqtt.received'
           tags:
             - tag: component
               value: mqtt
