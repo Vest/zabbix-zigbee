@@ -1,5 +1,5 @@
 zabbix_export:
-  version: '7.4'
+  version: '8.0'
   template_groups:
     - uuid: 9702754414644deba5cb4ed3e9f33594
       name: Templates/IoT
@@ -37,10 +37,10 @@ zabbix_export:
           type: ZABBIX_ACTIVE
           key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/state]'
           delay: '0'
-          history: '1h'
+          history: '0'
           trends: '0'
-          value_type: TEXT
-          description: 'Master: retained bridge/state JSON, e.g. {"state":"online"}.'
+          value_type: JSON
+          description: 'Master: retained bridge/state JSON, e.g. {"state":"online"}. Native JSON (8.0); dependents parse $.state. history=0 — the raw blob is not stored.'
           tags:
             - tag: component
               value: raw
@@ -69,13 +69,30 @@ zabbix_export:
           type: ZABBIX_ACTIVE
           key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
           delay: '0'
-          history: '1h'
+          history: '0'
           trends: '0'
-          value_type: TEXT
-          description: 'Master: retained bridge/health JSON (os/process/mqtt/devices stats).'
+          value_type: JSON
+          description: 'Master: retained bridge/health JSON (os/process/mqtt/devices stats). Native JSON (8.0); dependents parse properties via $.path. history=0 — the raw blob is not stored. Liveness is on the z2m.bridge.heartbeat dependent (nodata() cannot read a JSON item).'
           tags:
             - tag: component
               value: raw
+        - uuid: 2f1e7c4a8b6d44f0a1c3e5d7b9f20a18
+          name: 'Bridge: Health heartbeat'
+          type: DEPENDENT
+          key: 'z2m.bridge.heartbeat'
+          value_type: UNSIGNED
+          history: '1h'
+          trends: '0'
+          description: 'Liveness beacon for the bridge: the response_time epoch (ms) from each bridge/health publish. Exists so nodata() has a stored dependent to read (the health master is history=0). A gap here means no health message arrived.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.response_time'
+          tags:
+            - tag: component
+              value: availability
         - uuid: a8d7f34dad5a41d69a3853179afc56ff
           name: 'Host: Load average (1m)'
           type: DEPENDENT
@@ -238,10 +255,10 @@ zabbix_export:
           type: ZABBIX_ACTIVE
           key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/info]'
           delay: '0'
-          history: '1h'
+          history: '0'
           trends: '0'
-          value_type: TEXT
-          description: 'Master: retained bridge/info JSON (config, version, coordinator).'
+          value_type: JSON
+          description: 'Master: retained bridge/info JSON (config, version, coordinator). Native JSON (8.0); dependents parse properties via $.path. history=0 — the raw blob (large) is not stored.'
           tags:
             - tag: component
               value: raw
@@ -318,10 +335,10 @@ zabbix_export:
       priority: HIGH
       description: 'The z2m gateway reported offline. Every Zigbee device is now unreachable/stale — this is the single liveness signal for the fleet.'
     - uuid: 133e3e2e2a294c659d070674143a6eb0
-      expression: 'nodata(/Zigbee2MQTT bridge by MQTT/mqtt.get[{$Z2M.SESSION},{$Z2M.BRIDGE.TOPIC}/health],{$Z2M.BRIDGE.DATA.TIMEOUT})=1'
+      expression: 'nodata(/Zigbee2MQTT bridge by MQTT/z2m.bridge.heartbeat,{$Z2M.BRIDGE.DATA.TIMEOUT})=1'
       name: 'Zigbee2MQTT: No bridge health data'
       priority: WARNING
-      description: 'No bridge/health message within the timeout; z2m may be stopped or the agent lost the broker.'
+      description: 'No bridge/health message within the timeout (nodata() on the health heartbeat dependent); z2m may be stopped or the agent lost the broker.'
     - uuid: 5cdcb1e061c5456b845478fc916f5d81
       expression: 'min(/Zigbee2MQTT bridge by MQTT/z2m.bridge.host_mem_pct,15m)>{$Z2M.BRIDGE.MEM.MAX}'
       name: 'Zigbee2MQTT: High host memory (>{$Z2M.BRIDGE.MEM.MAX}%)'

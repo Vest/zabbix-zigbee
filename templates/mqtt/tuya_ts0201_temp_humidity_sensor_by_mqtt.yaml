@@ -1,5 +1,5 @@
 zabbix_export:
-  version: '7.4'
+  version: '8.0'
   template_groups:
     - uuid: 9702754414644deba5cb4ed3e9f33594
       name: Templates/IoT
@@ -9,12 +9,13 @@ zabbix_export:
       name: 'Tuya TS0201 temp-humidity sensor by MQTT'
       description: |
         Zigbee temperature + humidity sensor (Tuya TS0201; e.g. TH09Z,
-        manufacturer _TZ3000_yupc0pb7) over MQTT. Links "Zigbee2MQTT common by
-        MQTT" for battery/linkquality/firmware/liveness; adds temperature and
-        humidity. Fits z2m friendly-name e.g. base-out. Import the common base
-        FIRST. Battery-powered — battery + low-battery trigger come from the base.
+        manufacturer _TZ3000_yupc0pb7) over MQTT. Links "Zigbee2MQTT battery device
+        by MQTT", which in turn links "Zigbee2MQTT common by MQTT" — so this device
+        inherits battery + low-battery trigger AND linkquality/firmware/liveness.
+        Adds temperature and humidity. Fits z2m friendly-name e.g. base-out.
+        Import the common base FIRST. Battery-powered.
       templates:
-        - name: 'Zigbee2MQTT common by MQTT'
+        - name: 'Zigbee2MQTT battery device by MQTT'
       groups:
         - name: Templates/IoT
       macros:

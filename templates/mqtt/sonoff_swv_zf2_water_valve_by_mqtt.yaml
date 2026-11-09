@@ -1,5 +1,5 @@
 zabbix_export:
-  version: '7.4'
+  version: '8.0'
   template_groups:
     - uuid: 9702754414644deba5cb4ed3e9f33594
       name: Templates/IoT
@@ -9,13 +9,15 @@ zabbix_export:
       name: 'SONOFF SWV-ZF2 water valve by MQTT'
       description: |
         SONOFF SWV-ZF2 dual-channel Zigbee smart water valve, over MQTT (agent 2
-        MQTT plugin). Links "Zigbee2MQTT common by MQTT" for battery/linkquality/
-        firmware/liveness; adds irrigation metrics: valve state, run duration and
-        live volume per channel, per-event water litres (channels + summed) and
-        valve abnormal state. Import the common base FIRST. Fits z2m friendly-name
-        e.g. garden-pump. Set {$Z2M.TOPIC}=z2m/<device-name> on the host.
+        MQTT plugin). Links "Zigbee2MQTT battery device by MQTT", which in turn
+        links "Zigbee2MQTT common by MQTT" — so this device inherits battery +
+        low-battery trigger AND linkquality/firmware/liveness. Adds irrigation
+        metrics: valve state, run duration and live volume per channel, per-event
+        water litres (channels + summed) and valve abnormal state. Import the
+        common base FIRST. Fits z2m friendly-name e.g. garden-pump. Set
+        {$Z2M.TOPIC}=z2m/<device-name> on the host.
       templates:
-        - name: 'Zigbee2MQTT common by MQTT'
+        - name: 'Zigbee2MQTT battery device by MQTT'
       groups:
         - name: Templates/IoT
       macros:

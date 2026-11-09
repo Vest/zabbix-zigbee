@@ -1,0 +1,51 @@
+zabbix_export:
+  version: '8.0'
+  template_groups:
+    - uuid: 9702754414644deba5cb4ed3e9f33594
+      name: Templates/IoT
+  templates:
+    - uuid: 6b69e7ef302846abb255f3e0bb70a4e9
+      template: 'Zigbee2MQTT battery device by MQTT'
+      name: 'Zigbee2MQTT battery device by MQTT'
+      description: |
+        Battery capability mix-in for zigbee2mqtt (z2m) end devices (sensors,
+        valves) monitored over MQTT. Adds the battery (%) dependent item and the
+        low-battery trigger, parsed from the master mqtt.get blob defined in
+        "Zigbee2MQTT common by MQTT". Link this ALONGSIDE the common base ONLY on
+        battery-powered devices — do NOT link it on mains-powered Routers (smart
+        plugs), which publish no $.battery field. Import "Zigbee2MQTT common by
+        MQTT" FIRST (this template reads its master item).
+      templates:
+        - name: 'Zigbee2MQTT common by MQTT'
+      groups:
+        - name: Templates/IoT
+      macros:
+        - macro: '{$Z2M.BATTERY.MIN}'
+          value: '15'
+          description: 'Battery percent below which a low-battery warning fires.'
+      items:
+        - uuid: 193da1dcec0a4de097ee67c60ee16c3f
+          name: 'Battery'
+          type: DEPENDENT
+          key: 'z2m.battery'
+          value_type: UNSIGNED
+          units: '%'
+          description: 'Remaining battery (%). Parsed from the master mqtt.get item defined in the common base. Only link this template on battery-powered devices.'
+          master_item:
+            key: 'mqtt.get[{$Z2M.SESSION},{$Z2M.TOPIC}]'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - '$.battery'
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - '1h'
+          tags:
+            - tag: component
+              value: battery
+  triggers:
+    - uuid: 55e2b461fe3f406d8dfbc76706c80e56
+      expression: 'last(/Zigbee2MQTT battery device by MQTT/z2m.battery)<{$Z2M.BATTERY.MIN}'
+      name: 'Zigbee: Low battery (<{$Z2M.BATTERY.MIN}%)'
+      priority: WARNING
+      description: 'Battery dropped below the threshold. Only battery devices link this template, so no mains-device guard is needed.'

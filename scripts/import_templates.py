@@ -30,6 +30,7 @@ TEMPLATES = os.path.join(REPO, "templates")
 # Dependency-correct order: common base BEFORE the device templates that link it.
 DEFAULT_FILES = [
     "mqtt/zigbee2mqtt_common_by_mqtt.yaml",              # base
+    "mqtt/zigbee2mqtt_battery_by_mqtt.yaml",             # battery mix-in (links the base's master); import before battery devices
     "mqtt/sonoff_swv_zf2_water_valve_by_mqtt.yaml",
     "mqtt/tuya_ts011f_smart_plug_by_mqtt.yaml",
     "mqtt/tuya_ts0201_temp_humidity_sensor_by_mqtt.yaml",

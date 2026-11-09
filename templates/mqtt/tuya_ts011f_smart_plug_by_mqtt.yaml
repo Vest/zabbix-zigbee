@@ -1,5 +1,5 @@
 zabbix_export:
-  version: '7.4'
+  version: '8.0'
   template_groups:
     - uuid: 9702754414644deba5cb4ed3e9f33594
       name: Templates/IoT
@@ -13,7 +13,8 @@ zabbix_export:
         MQTT" for linkquality/firmware/liveness; adds on/off state and power
         metering (power, current, voltage, cumulative energy). Fits z2m
         friendly-names e.g. base-plug-1, base-plug-2, living-plug. Import the
-        common base FIRST. Mains-powered (Router) — battery item stays empty.
+        common base FIRST. Mains-powered (Router) — no battery, so the battery
+        template is deliberately NOT linked.
       templates:
         - name: 'Zigbee2MQTT common by MQTT'
       groups:
@@ -22,6 +23,9 @@ zabbix_export:
         - macro: '{$Z2M.POWER.MAX}'
           value: '3680'
           description: 'Active-power warning threshold, watts (default ~16 A * 230 V).'
+        - macro: '{$Z2M.DATA.TIMEOUT}'
+          value: '24h'
+          description: 'Overrides the common-base default (2h). An idle TS011F mains plug only publishes on state change, so a plug drawing ~0 W can legitimately stay silent for many hours — 2h caused false "no data" flaps. 24h still catches a plug that has genuinely dropped off the network for a full day. Raise further per host if a plug is expected to sit untouched even longer.'
       items:
         - uuid: d536ef5fee9b4e7983d08cd318129633
           name: 'State'
